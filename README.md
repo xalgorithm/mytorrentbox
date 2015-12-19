@@ -1,13 +1,21 @@
 # Beaglebone Setup Notes
 
 ## TODO:
+
 ~~1. Scaffold Project~~
+
 ~~2. Get Cfg's used into Git~~
+
 ~~3. Get commands used into README~~
+
 ~~4. Write and add VPN cfg and random selector script~~
+
 5. Put together Metor based interface app
+
 6. Figure out NFS connections to file server
+
 7. Get cron setup to rotate VPN every 6 hours
+
 8. Refactor, throw one away, make another
 
 ## Project Overview
