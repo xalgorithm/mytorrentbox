@@ -9,7 +9,7 @@ Download the file, decompress it, and write it to a microSD card:
 
     unxz bone-debian-8.2-tester-2gb-armhf-2015-11-12-2gb.img.xz
 
-    sudo dd if=bone-debian-8.2-tester-2gb-armhf-2015-11-12-2gb.img of=${sdcard_device}
+    sudo dd if=bone-debian-8.2-tester-2gb-armhf-2015-11-12-2gb.img of=${sdcard_device} bs=1m
 
 ## OS Installation
 
