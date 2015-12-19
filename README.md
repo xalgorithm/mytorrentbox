@@ -70,7 +70,7 @@ Install the `transmission-daemon` package:
 
 We used the guide found [here](abyrne.me/setting-up-a-transmission-web-interface-on-a-headless-ubuntu-server/) to configure the service. The configuration file is found at `/etc/transmission-daemon/settings.json`. An example can be found in this repository.
 
-The following commands will disable the built-in Beaglebone web services so that Transmission can run on port 80:
+The following commands will disable the built-in Beaglebone web services so that Transmission can run on port 80. You should reboot or use `systemctl stop` to make sure the service aren't running:
 
     sudo systemctl disable cloud9.service
     sudo systemctl disable gateone.service
