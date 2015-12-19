@@ -31,6 +31,24 @@ If you want you can repartiation and reformat your SD card and mount it as a sep
 
 For our case we mounted a 32G microSD card to `/var`.
 
+## OS Configuration
+
+You should probably do some things like disable the default `debian` user, create your own user accounts, and do some basic security configuration. I'll leave it to you to figure out how to do all of that.
+
+By default SSH will display a banner when you connect with the following information:
+
+    Debian GNU/Linux 8
+
+    BeagleBoard.org Debian Image 2015-11-12
+
+    Support/FAQ: http://elinux.org/Beagleboard:BeagleBoneBlack_Debian
+
+    default username:password is [debian:temppwd]
+
+You can disable this banner by editing the SSHd config file at `/etc/ssh/sshd_config` and commenting out the following line:
+
+    Banner /etc/issue.net
+
 ## Transmission Installation
 
 Install the `transmission-daemon` package:
