@@ -1,17 +1,30 @@
 # Beaglebone Setup Notes
 
-The Debian 8.2 image found [here](http://beagleboard.org/latest-images) was used to configure the OS of the Beaglebone
-Black.
+## Project Overview
 
-Download the file, decompress it, and write it to a microSD card:
+The goal of this project is to build a headless bittorrent box using a Beaglebone Black using the transmission-daemon web interface.
+
+Transmission will beconfigured to bind to two network interaces. Since the Beaglebone only has a single Ethernet port we will utilize an alias to support the second IP.
+
+One interface will serve the transmission web UI, and the other will be used to connect to a VPN over which transfer the actual bittorrent data.
+
+For the operating system we used the Debian 8.2 image found [here](http://beagleboard.org/latest-images).
+
+Just download the file, decompress it, and write it to a microSD card
+## OS Installation
+
+Download the OS image:
 
     curl -L -O http://builds.beagleboard.org/images/master/08132bf0d0cb284d1148c5d329fe3c8e1aaee44d/bone-debian-8.2-tester-2gb-armhf-2015-11-12-2gb.img.xz
 
+Decompress the file:
+
     unxz bone-debian-8.2-tester-2gb-armhf-2015-11-12-2gb.img.xz
 
-    sudo dd if=bone-debian-8.2-tester-2gb-armhf-2015-11-12-2gb.img of=${sdcard_device} bs=1m
+Determine the device name of your SD card. On my mac it was /dev/disk2.
 
-## OS Installation
+    sudo dd if=bone-debian-8.2-tester-2gb-armhf-2015-11-12-2gb.img of=/dev/disk2 bs=1m
+
 
 After the image is written to the microsd card insert it into the microsd slot on the Beaglebone. Boot from the SD card by holding the button on the board nearest the card slot and connecting the power.
 
