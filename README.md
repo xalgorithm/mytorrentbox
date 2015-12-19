@@ -1,12 +1,22 @@
 # Beaglebone Setup Notes
 
+## TODO:
+      ~~1. Scaffold Project~~
+      ~~2. Get Cfg's used into Git~~
+      ~~3. Get commands used into README~~
+      ~~4. Write and add VPN cfg and random selector script~~
+      5. Put together Metor based interface app
+      6. Figure out NFS connections to file server
+      7. Get cron setup to rotate VPN every 6 hours
+      8. Refactor, throw one away, make another
+
 ## Project Overview
 
 The goal of this project is to build a headless bittorrent box using a Beaglebone Black using the transmission-daemon web interface.
 
 Transmission will beconfigured to bind to two network interaces. Since the Beaglebone only has a single Ethernet port we will utilize an alias to support the second IP.
 
-One interface will serve the transmission web UI, and the other will be used to connect to a VPN over which transfer the actual bittorrent data.
+One interface will serve the transmission web UI, and the other will be used to connect to a VPN over which transfer the actual bittorrent data will be transferred.
 
 For the operating system we used the Debian 8.2 image found [here](http://beagleboard.org/latest-images).
 
