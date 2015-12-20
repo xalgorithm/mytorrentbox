@@ -14,6 +14,7 @@ _default_openvpn_bin = '/usr/sbin/openvpn'
 def parse_command_line(args=None):
     """
     Parse options from the command line.
+
     :param args: Args passed to the script from the command line
     :return: The "opts" portion of the out put from the OptionParser.parse_args() method.
     """
