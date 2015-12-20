@@ -64,7 +64,7 @@ def get_random_config(directory=None):
     # pick a config at random
     config = str(random.choice(ovpn_files))
 
-    return config
+    return "{0}/{1}".format(directory, config)
 
 
 def start_vpn(openvpn, config, userfile):
