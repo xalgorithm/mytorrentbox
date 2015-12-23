@@ -6,6 +6,7 @@ import subprocess
 import optparse
 import signal
 import json
+import pty
 
 # Default options global variable
 _default_config_dir = os.path.abspath('.')
@@ -99,12 +100,13 @@ def start_vpn(openvpn, config, userfile, cacert):
     :return: Dictionary containing OpenVPN PID and local VPN connection IP address. None if OpenVPN connect fails.
     """
 
+    master, slave = pty.openpty()
     openvpn_cmd = [openvpn, '--config', config, '--auth-user-pass', userfile, '--ca', cacert]
-    proc = subprocess.Popen(openvpn_cmd, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(openvpn_cmd, stdin=subprocess.PIPE, stdout=slave, stderr=slave, close_fds=True)
 
-    stdout = proc.stdout.read()
-    print stdout
-    for line in stdout:
+    stdout = os.fdopen(master)
+
+    for line in stdout.readlines():
         if '/sbin/ip addr add dev' in line:
             vpn_ip = line.split(' ')[11]
 
