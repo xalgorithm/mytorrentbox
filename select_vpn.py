@@ -40,7 +40,7 @@ def parse_command_line(args=None):
     parser.add_option("--openvpn", action="store",
                       help="Location of the OpenVPN binary. Default: {0}".format(_default_openvpn_bin))
 
-    parser.add_option("-p", "--pid", action="store",
+    parser.add_option("-p", "--pidfile", action="store",
                       help="Location of the openvpn PID file. Default: {0}".format(_default_pidfile))
 
     parser.add_option("-t", "--transmission_config", action="store",
