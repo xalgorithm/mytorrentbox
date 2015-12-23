@@ -161,10 +161,12 @@ def main():
 
         try:
             print "Stopping old OpenVPN session..."
-            os.kill(pid, signal.SIGINT)
+            os.kill(int(pid), signal.SIGINT)
         except OSError, e:
             print "A PID file exists, but the PID could not be killed. Opening new VPN connection anyway."
             print e.message
+        except TypeError:
+            print "Invalid value in PID file. Skipping."
 
     # Get the config to use for openvpn
     config = get_random_config(opts.configdir)
