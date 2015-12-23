@@ -106,9 +106,12 @@ def start_vpn(openvpn, config, userfile, cacert):
 
     stdout = os.fdopen(master)
 
-    for line in stdout.readlines():
+    line = stdout.readline()
+    while line:
+        print line
         if '/sbin/ip addr add dev' in line:
             vpn_ip = line.split(' ')[11]
+            line = None
 
     return {'pid': proc.pid, 'ip': vpn_ip}
 
