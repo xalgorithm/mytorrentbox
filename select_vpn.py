@@ -100,7 +100,7 @@ def start_vpn(openvpn, config, userfile, cacert):
     """
 
     openvpn_cmd = [openvpn, '--config', config, '--auth-user-pass', userfile, '--ca', cacert]
-    proc = subprocess.Popen(openvpn_cmd.join(' '), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(' '.join(openvpn_cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Wait a minute for OpenVPN to finish connecting
     proc.wait(timeout=60)
