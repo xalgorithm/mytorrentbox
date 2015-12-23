@@ -4,12 +4,17 @@ import os
 import random
 import subprocess
 import optparse
+import psutil
+import signal
+import json
 
 # Default options global variable
 _default_config_dir = os.path.abspath('.')
 _default_vpn_userfile = os.path.abspath("./vpn_u.conf")
 _default_openvpn_bin = '/usr/sbin/openvpn'
 _default_cacert = os.path.abspath("./ca.crt")
+_default_pidfile = '/var/run/openvpn/torrentbox_vpn.pid'
+_default_transmission_config = '/etc/transmission-daemon/settings.json'
 
 
 def parse_command_line(args=None):
@@ -31,10 +36,17 @@ def parse_command_line(args=None):
                             "Default: {0}".format(_default_vpn_userfile)))
 
     parser.add_option("--cacert", action="store",
-                       help="Location of the VPN provider's CA Cert. Default: {0}".format(_default_cacert))
+                      help="Location of the VPN provider's CA Cert. Default: {0}".format(_default_cacert))
 
     parser.add_option("--openvpn", action="store",
                       help="Location of the OpenVPN binary. Default: {0}".format(_default_openvpn_bin))
+
+    parser.add_option("-p", "--pid", action="store",
+                      help="Location of the openvpn PID file. Default: {0}".format(_default_pidfile))
+
+    parser.add_option("t", "--transmission_config", action="store",
+                      help=("Location of the transmission-daemon settings.json file. "
+                            "Default: {0}".format(_default_transmission_config)))
 
     opts, _ = parser.parse_args(args)
 
@@ -47,6 +59,10 @@ def parse_command_line(args=None):
         opts.openvpn = _default_openvpn_bin
     if not opts.cacert:
         opts.cacert = _default_cacert
+    if not opts.pidfile:
+        opts.pidfile = _default_pidfile
+    if not opts.transmission_config:
+        opts.transmission_config = _default_transmission_config
 
     return opts
 
@@ -81,10 +97,45 @@ def start_vpn(openvpn, config, userfile, cacert):
     :param config: Location of the openvpn config file to use.
     :param userfile: Location of the openvpn credentials to use.
     :param cacert: Location of the CA cert for the VPN provider
-    :return: None
+    :return: Dictionary containing OpenVPN PID and local VPN connection IP address. None if OpenVPN connect fails.
     """
+
     openvpn_cmd = [openvpn, '--config', config, '--auth-user-pass', userfile, '--ca', cacert]
-    subprocess.Popen(openvpn_cmd)
+    proc = subprocess.Popen(openvpn_cmd.join(' '), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # Wait a minute for OpenVPN to finish connecting
+    proc.wait(timeout=60)
+
+    # Capture output from shell
+    stdout, stderr = proc.communicate()
+
+    if proc.returncode != 0:
+        print "OpenVPN exited with errors:\n {0}".format(stderr)
+        return None
+
+    for line in stdout:
+        if 'sbin/ip addr add dev' in line:
+            vpn_ip = line.split(' ')[11]
+
+    return {'pid': proc.pid, 'ip': vpn_ip}
+
+
+def update_transmission_config(config_file, ip):
+    """
+    Update the configuration settings.json for transmission-daemon with the local VPN connection IP address.
+
+    this will ensure that transmission-daemon binds its bittorrent traffic to the VPN link.
+
+    :param config_file: Location of the Transmission daemon config file.
+    :param ip: IP Address of the local VPN link to add to the config file.
+    :return:
+    """
+    with open(config_file, 'w') as settings_json:
+        data = json.loads(settings_json.read())
+
+        data['bind-address-ipv4'] = str(ip)
+
+        json.dumps(data, settings_json, indent=4)
 
 
 def main():
@@ -106,11 +157,33 @@ def main():
         print "OpenVPN not found at {0} - make sure OpenVPN is installed on this machine.".format(opts.openvpn)
         sys.exit(1)
 
+    # Check for an existing PID file. If one exists read the PID from it, and kill the old VPN connection.
+    if os.path.isfile(opts.pidfile):
+        pid = open(opts.pidfile, 'r').read()
+        if psutil.pid_exists(pid):
+            print "Stopping old OpenVPN session..."
+            os.kill(pid, signal.SIGINT)
+        else:
+            print "A PID file exists, but the PID is not running. Opening new VPN connection anyway."
+
     # Get the config to use for openvpn
     config = get_random_config(opts.configdir)
 
     # Start OpenVPN
-    start_vpn(opts.openvpn, config, opts.userfile, opts.cacert)
+    vpn = start_vpn(opts.openvpn, config, opts.userfile, opts.cacert)
+
+    # Check if OpenVPN connected successfully.
+    if vpn:
+        # Write PID file with new PID.
+        pid_file = open(opts.pidfile, 'w')
+        pid_file.write(vpn['pid'])
+
+        update_transmission_config(opts.transmission_config, vpn['ip'])
+    else:
+        print "OpenVPN connection failed. Quitting."
+        sys.exit(1)
+
+
 
 
 if __name__ == "__main__":
