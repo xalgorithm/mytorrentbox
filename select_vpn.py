@@ -9,6 +9,7 @@ import optparse
 _default_config_dir = os.path.abspath('.')
 _default_vpn_userfile = os.path.abspath("./vpn_u.conf")
 _default_openvpn_bin = '/usr/sbin/openvpn'
+_default_cacert = os.path.abspath("./ca.crt")
 
 
 def parse_command_line(args=None):
@@ -28,6 +29,9 @@ def parse_command_line(args=None):
     parser.add_option("-u", "--userfile", action="store",
                       help=("Configuration File containing OpenVPN authentication credentials\n"
                             "Default: {0}".format(_default_vpn_userfile)))
+
+    parser.add_options("--cacert", action="store",
+                       help="Location of the VPN provider's CA Cert. Default: {0}".format(_default_cacert))
 
     parser.add_option("--openvpn", action="store",
                       help="Location of the OpenVPN binary. Default: {0}".format(_default_openvpn_bin))
@@ -67,13 +71,17 @@ def get_random_config(directory=None):
     return "{0}/{1}".format(directory, config)
 
 
-def start_vpn(openvpn, config, userfile):
+def start_vpn(openvpn, config, userfile, cacert):
     """
     Start OpenVPN using the given openvpn configuration file and VPN userfile.
 
+    :param openvpn: Location of openvpn binary.
+    :param config: Location of the openvpn config file to use.
+    :param userfile: Location of the openvpn credentials to use.
+    :param cacert: Location of the CA cert for the VPN provider
     :return: None
     """
-    openvpn_cmd = [openvpn, '--config', config, '--auth-user-pass', userfile]
+    openvpn_cmd = [openvpn, '--config', config, '--auth-user-pass', userfile, '--ca', cacert]
     subprocess.Popen(openvpn_cmd)
 
 
@@ -100,7 +108,7 @@ def main():
     config = get_random_config(opts.configdir)
 
     # Start OpenVPN
-    start_vpn(opts.openvpn, config, opts.userfile)
+    start_vpn(opts.openvpn, config, opts.userfile, opts.cacert)
 
 
 if __name__ == "__main__":
