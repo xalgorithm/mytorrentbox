@@ -30,7 +30,7 @@ def parse_command_line(args=None):
                       help=("Configuration File containing OpenVPN authentication credentials\n"
                             "Default: {0}".format(_default_vpn_userfile)))
 
-    parser.add_options("--cacert", action="store",
+    parser.add_option("--cacert", action="store",
                        help="Location of the VPN provider's CA Cert. Default: {0}".format(_default_cacert))
 
     parser.add_option("--openvpn", action="store",
