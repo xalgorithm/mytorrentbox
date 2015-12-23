@@ -45,6 +45,8 @@ def parse_command_line(args=None):
         opts.userfile = _default_vpn_userfile
     if not opts.openvpn:
         opts.openvpn = _default_openvpn_bin
+    if not opts.cacert:
+        opts.cacert = _default_cacert
 
     return opts
 
