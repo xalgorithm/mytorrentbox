@@ -112,6 +112,8 @@ def start_vpn(openvpn, config, userfile, cacert):
         if '/sbin/ip addr add dev' in line:
             vpn_ip = line.split(' ')[11]
             line = None
+        else:
+            line = stdout.readline()
 
     return {'pid': proc.pid, 'ip': vpn_ip}
 
