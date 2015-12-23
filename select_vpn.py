@@ -106,7 +106,9 @@ def start_vpn(openvpn, config, userfile, cacert):
     # Wait a few seconds for OpenVPN to finish connecting
     sleep(30)
 
-    for line in proc.stdout.readlines():
+    stdout = proc.stdout.read()
+    print stdout
+    for line in stdout:
         if '/sbin/ip addr add dev' in line:
             vpn_ip = line.split(' ')[11]
 
