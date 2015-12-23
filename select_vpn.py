@@ -178,7 +178,7 @@ def main():
     if vpn:
         # Write PID file with new PID.
         pid_file = open(opts.pidfile, 'w')
-        pid_file.writelines(vpn['pid'])
+        pid_file.write(str(vpn['pid']))
 
         update_transmission_config(opts.transmission_config, vpn['ip'])
     else:
