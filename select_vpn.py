@@ -101,19 +101,12 @@ def start_vpn(openvpn, config, userfile, cacert):
     """
 
     openvpn_cmd = [openvpn, '--config', config, '--auth-user-pass', userfile, '--ca', cacert]
-    proc = subprocess.Popen(' '.join(openvpn_cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(' '.join(openvpn_cmd), stdout=subprocess.PIPE)
 
-    # Wait a minute for OpenVPN to finish connecting
-    sleep(60)
+    # Wait a few seconds for OpenVPN to finish connecting
+    sleep(30)
 
-    # Capture output from shell
-    stdout, stderr = proc.communicate()
-
-    if proc.returncode != 0:
-        print "OpenVPN exited with errors:\n {0}".format(stderr)
-        return None
-
-    for line in stdout:
+    for line in proc.stdout():
         if 'sbin/ip addr add dev' in line:
             vpn_ip = line.split(' ')[11]
 
