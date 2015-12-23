@@ -43,7 +43,7 @@ def parse_command_line(args=None):
     parser.add_option("-p", "--pid", action="store",
                       help="Location of the openvpn PID file. Default: {0}".format(_default_pidfile))
 
-    parser.add_option("t", "--transmission_config", action="store",
+    parser.add_option("-t", "--transmission_config", action="store",
                       help=("Location of the transmission-daemon settings.json file. "
                             "Default: {0}".format(_default_transmission_config)))
 
