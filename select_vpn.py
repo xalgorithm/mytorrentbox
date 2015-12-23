@@ -4,7 +4,6 @@ import os
 import random
 import subprocess
 import optparse
-import psutil
 import signal
 import json
 
@@ -160,11 +159,13 @@ def main():
     # Check for an existing PID file. If one exists read the PID from it, and kill the old VPN connection.
     if os.path.isfile(opts.pidfile):
         pid = open(opts.pidfile, 'r').read()
-        if psutil.pid_exists(pid):
+
+        try:
             print "Stopping old OpenVPN session..."
             os.kill(pid, signal.SIGINT)
-        else:
-            print "A PID file exists, but the PID is not running. Opening new VPN connection anyway."
+        except OSError, e:
+            print "A PID file exists, but the PID could not be killed. Opening new VPN connection anyway."
+            print e.message
 
     # Get the config to use for openvpn
     config = get_random_config(opts.configdir)
