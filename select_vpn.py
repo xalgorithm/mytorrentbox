@@ -6,6 +6,7 @@ import subprocess
 import optparse
 import signal
 import json
+from time import sleep
 
 # Default options global variable
 _default_config_dir = os.path.abspath('.')
@@ -103,7 +104,7 @@ def start_vpn(openvpn, config, userfile, cacert):
     proc = subprocess.Popen(' '.join(openvpn_cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Wait a minute for OpenVPN to finish connecting
-    proc.wait()
+    sleep(60)
 
     # Capture output from shell
     stdout, stderr = proc.communicate()
