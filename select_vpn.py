@@ -128,10 +128,13 @@ def update_transmission_config(config_file, ip):
     :return:
     """
 
-    with open(config_file, 'r+') as settings_json:
+    with open(config_file, 'r') as settings_json:
         data = json.load(settings_json)
+
+    if data:
         data['bind-address-ipv4'] = str(ip)
-        settings_json.seek(0)
+
+    with open(config_file, 'w') as settings_json:
         json.dump(data, settings_json, indent=4)
 
 
