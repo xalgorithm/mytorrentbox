@@ -2,33 +2,19 @@
 
 ## TODO:
 
-~~1. Scaffold Project~~
-
-~~2. Get Cfg's used into Git~~
-
-~~3. Get commands used into README~~
-
-~~4. Write and add VPN cfg and random selector script~~
-
-~~5. Put together Metor based interface app~~
-
-6. Figure out NFS connections to file server
-
-7. Get cron setup to rotate VPN every 6 hours
-
-8. Refactor, throw one away, make another
+Project stable: Want to add to it? Fork and PR!
 
 ## Project Overview
 
-The goal of this project is to build a headless bittorrent box using a Beaglebone Black using the transmission-daemon web interface.
+The goal of this project is to build a headless bittorrent box using a [Beaglebone Black](https://www.adafruit.com/products/1876) using the transmission-daemon web interface.
 
-Transmission will beconfigured to bind to two network interaces. Since the Beaglebone only has a single Ethernet port we will utilize an alias to support the second IP.
+Transmission will be configured to bind to two network interaces. Since the Beaglebone only has a single Ethernet port we will utilize an alias to support the second IP.
 
 One interface will serve the transmission web UI, and the other will be used to connect to a VPN over which transfer the actual bittorrent data will be transferred.
 
 For the operating system we used the Debian 8.2 image found [here](http://beagleboard.org/latest-images).
 
-Just download the file, decompress it, and write it to a microSD card
+Download the file, decompress it, and write it to a microSD card
 ## OS Installation
 
 Download the OS image:
@@ -108,9 +94,50 @@ Make sure the service is configured to start at boot:
 
     sudo systemctl enable transmission-daemon.service
 
+## VPN Service
+
+Torrenting on a public internet interface is asking for problems.
+
+VPN services are extremely cheap now ~5 - 10 a month. Most VPN providers will create __.ovpn__ files.
+
+You can put these in the same folder as the python script. If they provide a __CA__ (Certificate Authority) file put it there as well.
+
+The Python script, __select_vpn.py__, allows you to utilise OpenVpn to connect to a provider.
+
+If you set a cron job to invoke the script, it will automatically disconnect and reconnect to a random server, defined by the .ovpn files.
+
+That directory is configurable, either by passing the python script parameters when you invoke it or setting it in the script itself
+
+We've placed that script in our /root folder.
+The cronjob and the script has to run as root.
+
+You can also:
+ Place __select_vpn.py__ in __/usr/bin__
+ Place the configs in __/etc/transmission-daemon__
+ 
+### Cron jobs
+
+To have the VPN script automatically rotate servers use a [cronjob](http://www.unixgeeks.org/security/newbie/unix/cron-1.html).
+
+`vi /var/spool/cron/crontabs/root`
+
+The job we've configured is:
+
+`0 */6 * * * /root/mytorrentbox/select_vpn.py -c /root/openvpn -u /root/.vpnuser --cacert /root/openvpn/ca.crt  2>&1 > /dev/null`
+
+
+Every 6 hours, the python script is executed, with the openvpn configuration directory, a file with the open vpn credentials and the certificate passed as parameters.
+
+The syntax for vpn credentials are:
+
+```
+yourvpnuser    (user)
+42988seiufh74  (pass)
+```
+
 ## Advanced Goodies
 
-Transmission togther with Kettu allows you to set destination directories. If you have a NAS, Linux file server or cloud service you want to store files on, look below for some NFS wizardry
+Transmission togther with [Kettu](https://github.com/endor/kettu) allows you to set destination directories. If you have a NAS, Linux file server or cloud service you want to store files on, look below for some NFS wizardry
 I'm using a Centos based fileserver so this follows those steps. Your NAS/Fileserver may differ
 
 First, for Centos/RHEL based servers get the necessary NFS tools
@@ -141,9 +168,8 @@ Enable your NFS drives and start the NFS service
 Some initial examples to get you started
 
 ```bash
-/home/pool2/video 192.168.0.0/24(rw,sync,no_root_squash,no_all_squash)
-/home/pool2/TV 192.168.0.0/24(rw,sync,no_root_squash,no_all_squash)
-/home/pool2/Music_Videos 192.168.0.0/24(rw,sync,no_root_squash,no_all_squash)
+/home/pool2/iso 192.168.0.0/24(rw,sync,no_root_squash,no_all_squash)
+/home/pool2/documentation 192.168.0.0/24(rw,sync,no_root_squash,no_all_squash)
 ```
 
 -Save and close the exports file.
@@ -179,13 +205,39 @@ Add your drive mounts some examples to get started
 
 ```bash
 debugfs  /sys/kernel/debug  debugfs  defaults  0  0
-192.168.0.2:/home/pool2/TV   /var/TV  nfs     defaults        0       0
-192.168.0.2:/home/pool2/Instructional_Video   /var/Instructional_Video  nfs     defaults        0       0
+192.168.0.2:/home/iso /var/iso  nfs     defaults        0       0
+192.168.0.2:/home/documentation /var/documentation  nfs     defaults        0       0
 ```
 
 Now, reboot your beaglebone and check the mounts.
 
 `df -h`
+
+### Setup Kettu
+Transmissions interface is barely acceptable. It is useable and certainly enables you to retrieve torrents, but it is sparse on features. It does not support all of the RPC api that transmission supports
+If, like me, you want to configure per torrent bandwidth limiting and control where your files are downloaded too, easily you can replace the default interface with __Kettu__
+
+Halt transmisssion
+
+`sudo systemctl stop transmission-daemon.service`
+
+Download the kettu repository.
+
+`git clone https://github.com/endor/kettu.git`
+
+Change to your transmission directory located in __/usr/share/transmission__
+ 
+Copy the __web__ directory to __web.back__
+
+`cp web web.back`
+
+Copy the __Kettu__ directory you just cloned, to the transmission directory as __web__
+
+`cp -R /root/kettu /usr/share/transmission/web`
+
+Start transmission again
+
+`sudo systemctl start transmission-daemon.service`
 
 In Kettu there is a file that allows you to set download locations. They are presented as a dropdown in transmission.
 Using this method is an easy way to keep track of your files and keep them somewhat organized.
@@ -203,15 +255,9 @@ This is a json file, so it should be easy to edit
 
 ```
 kettu.config.locations = [
-  {group:"Video", items: [
-    {name:"TV Shows", path:"/var/TV"},
-    {name:"Movies", path:"/var/video"},
-    {name:"Vid Training", path:"/var/Instructional_Video"}
-  ]},
-  {group:"Applications and Other", items: [
-    {name:"Applications", path:"/var/apps"},
-    {name:"Misc", path:"/var/misc"},
-  ]},
-  {name:"Music", path:"/var/music"},
+  {group:"Dad", items: [
+    {name:"Linux Installs", path:"/var/iso"},
+    {name:"Movies", path:"/var/documentation"},
+  ]}
 ];
 ```
