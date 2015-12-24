@@ -10,7 +10,7 @@
 
 ~~4. Write and add VPN cfg and random selector script~~
 
-5. Put together Metor based interface app
+~~5. Put together Metor based interface app~~
 
 6. Figure out NFS connections to file server
 
@@ -107,3 +107,111 @@ Start transmission:
 Make sure the service is configured to start at boot:
 
     sudo systemctl enable transmission-daemon.service
+
+## Advanced Goodies
+
+Transmission togther with Kettu allows you to set destination directories. If you have a NAS, Linux file server or cloud service you want to store files on, look below for some NFS wizardry
+I'm using a Centos based fileserver so this follows those steps. Your NAS/Fileserver may differ
+
+First, for Centos/RHEL based servers get the necessary NFS tools
+
+`yum -y install nfs-utils`
+
+Once installed edit the configuration file for NFS. 
+_I only needed to change the domain name, many more options are available_
+
+`vi /etc/idmapd.conf`
+
+I change the domain to fit my setup
+
+```bash
+.....
+[General]
+#Verbosity = 0
+# The following should be set to the local NFSv4 domain name
+# The default is the host's DNS domain name.
+Domain = xalg.im
+.....
+```
+
+Enable your NFS drives and start the NFS service
+
+`vi exports`
+
+Some initial examples to get you started
+
+```bash
+/home/pool2/video 192.168.0.0/24(rw,sync,no_root_squash,no_all_squash)
+/home/pool2/TV 192.168.0.0/24(rw,sync,no_root_squash,no_all_squash)
+/home/pool2/Music_Videos 192.168.0.0/24(rw,sync,no_root_squash,no_all_squash)
+```
+
+-Save and close the exports file.
+-restart the service
+`systemctl start rpcbind nfs-server` or `systemctl restart rpcbind nfs-server`
+ 
+Now we need to configure the beaglebone side. It has to know about the NFS shares to write to them
+
+-Get the necessary libraries and services
+
+`apt-get -y install nfs-client`
+
+-Edit the client service
+`vi /etc/idmapd.conf`
+
+_in my case I only need to edit the domain name, as before there are many more options available_
+
+
+```bash
+[General]
+
+Verbosity = 0
+Pipefs-Directory = /run/rpc_pipefs
+# set your own domain here, if id differs from FQDN minus hostname
+ Domain = xalg.im
+```
+
+-Add the cooresponding NFS client mounts
+
+`vi /etc/fstab`
+
+Add your drive mounts some examples to get started
+
+```bash
+debugfs  /sys/kernel/debug  debugfs  defaults  0  0
+192.168.0.2:/home/pool2/TV   /var/TV  nfs     defaults        0       0
+192.168.0.2:/home/pool2/Instructional_Video   /var/Instructional_Video  nfs     defaults        0       0
+```
+
+Now, reboot your beaglebone and check the mounts.
+
+`df -h`
+
+In Kettu there is a file that allows you to set download locations. They are presented as a dropdown in transmission.
+Using this method is an easy way to keep track of your files and keep them somewhat organized.
+
+If you replace the default web app with Kettu, the path is `/usr/share/transmission/web/config`
+
+The file, locations.js.example needs to be copied to locations.js
+`cp locatons.js.example locations.js`
+
+Edit that file, telling transmission about your download directories
+
+`vi /usr/share/transmission/web/config`
+
+This is a json file, so it should be easy to edit
+
+```
+kettu.config.locations = [
+  {group:"Video", items: [
+    {name:"TV Shows", path:"/var/TV"},
+    {name:"Movies", path:"/var/video"},
+    {name:"Vid Training", path:"/var/Instructional_Video"}
+  ]},
+  {group:"Applications and Other", items: [
+    {name:"Applications", path:"/var/apps"},
+    {name:"Misc", path:"/var/misc"},
+  ]},
+  {name:"Music", path:"/var/music"},
+];
+```

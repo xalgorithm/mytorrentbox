@@ -4,11 +4,17 @@ import os
 import random
 import subprocess
 import optparse
+import signal
+import json
+import pty
 
 # Default options global variable
 _default_config_dir = os.path.abspath('.')
 _default_vpn_userfile = os.path.abspath("./vpn_u.conf")
 _default_openvpn_bin = '/usr/sbin/openvpn'
+_default_cacert = os.path.abspath("./ca.crt")
+_default_pidfile = '/var/run/openvpn/torrentbox_vpn.pid'
+_default_transmission_config = '/etc/transmission-daemon/settings.json'
 
 
 def parse_command_line(args=None):
@@ -29,8 +35,18 @@ def parse_command_line(args=None):
                       help=("Configuration File containing OpenVPN authentication credentials\n"
                             "Default: {0}".format(_default_vpn_userfile)))
 
+    parser.add_option("--cacert", action="store",
+                      help="Location of the VPN provider's CA Cert. Default: {0}".format(_default_cacert))
+
     parser.add_option("--openvpn", action="store",
                       help="Location of the OpenVPN binary. Default: {0}".format(_default_openvpn_bin))
+
+    parser.add_option("-p", "--pidfile", action="store",
+                      help="Location of the openvpn PID file. Default: {0}".format(_default_pidfile))
+
+    parser.add_option("-t", "--transmission_config", action="store",
+                      help=("Location of the transmission-daemon settings.json file. "
+                            "Default: {0}".format(_default_transmission_config)))
 
     opts, _ = parser.parse_args(args)
 
@@ -41,6 +57,12 @@ def parse_command_line(args=None):
         opts.userfile = _default_vpn_userfile
     if not opts.openvpn:
         opts.openvpn = _default_openvpn_bin
+    if not opts.cacert:
+        opts.cacert = _default_cacert
+    if not opts.pidfile:
+        opts.pidfile = _default_pidfile
+    if not opts.transmission_config:
+        opts.transmission_config = _default_transmission_config
 
     return opts
 
@@ -67,14 +89,81 @@ def get_random_config(directory=None):
     return "{0}/{1}".format(directory, config)
 
 
-def start_vpn(openvpn, config, userfile):
+def start_vpn(openvpn, config, userfile, cacert):
     """
     Start OpenVPN using the given openvpn configuration file and VPN userfile.
 
-    :return: None
+    :param openvpn: Location of openvpn binary.
+    :param config: Location of the openvpn config file to use.
+    :param userfile: Location of the openvpn credentials to use.
+    :param cacert: Location of the CA cert for the VPN provider
+    :return: Dictionary containing OpenVPN PID and local VPN connection IP address. None if OpenVPN connect fails.
     """
-    openvpn_cmd = [openvpn, '--config', config, '--auth-user-pass', userfile]
-    subprocess.Popen(openvpn_cmd)
+
+    master, slave = pty.openpty()
+    openvpn_cmd = [openvpn, '--config', config, '--auth-user-pass', userfile, '--ca', cacert]
+    proc = subprocess.Popen(openvpn_cmd, stdin=subprocess.PIPE, stdout=slave, stderr=slave, close_fds=True)
+
+    stdout = os.fdopen(master)
+
+    line = stdout.readline()
+    while line:
+        if '/sbin/ip addr add dev' in line:
+            vpn_ip = line.split(' ')[11]
+            line = None
+        else:
+            line = stdout.readline()
+
+    return {'pid': proc.pid, 'ip': vpn_ip}
+
+
+def update_transmission_config(config_file, ip):
+    """
+    Update the configuration settings.json for transmission-daemon with the local VPN connection IP address.
+
+    this will ensure that transmission-daemon binds its bittorrent traffic to the VPN link.
+
+    :param config_file: Location of the Transmission daemon config file.
+    :param ip: IP Address of the local VPN link to add to the config file.
+    :return:
+    """
+
+    with open(config_file, 'r') as settings_json:
+        data = json.load(settings_json)
+
+    if data:
+        data['bind-address-ipv4'] = str(ip)
+
+    with open(config_file, 'w') as settings_json:
+        json.dump(data, settings_json, indent=4)
+
+
+def stop_transmission():
+    """
+    Stops the transmission-daemon service. Needed for refreshing configs.
+
+    :return: Return code of the stop command.
+    """
+    stop_cmd = ['/bin/systemctl', 'stop', 'transmission-daemon.service']
+    stop_proc = subprocess.Popen(stop_cmd)
+
+    stop_proc.wait()
+
+    return stop_proc.returncode
+
+
+def start_transmission():
+    """
+    Starts the transmission-daemon service. Needed for refreshing configs.
+
+    :return: Return code of the art command.
+    """
+    stop_cmd = ['/bin/systemctl', 'start', 'transmission-daemon.service']
+    stop_proc = subprocess.Popen(stop_cmd)
+
+    stop_proc.wait()
+
+    return stop_proc.returncode
 
 
 def main():
@@ -96,12 +185,57 @@ def main():
         print "OpenVPN not found at {0} - make sure OpenVPN is installed on this machine.".format(opts.openvpn)
         sys.exit(1)
 
+    # Stop transmission daemon
+    print "Stopping transmission-daemon..."
+    code = stop_transmission()
+
+    # Check for an existing PID file. If one exists read the PID from it, and kill the old VPN connection.
+    if os.path.isfile(opts.pidfile):
+        pid = open(opts.pidfile, 'r').read()
+
+        try:
+            print "Stopping old OpenVPN session..."
+            os.kill(int(pid), signal.SIGINT)
+        except OSError, e:
+            print "A PID file exists, but the PID could not be killed. Opening new VPN connection anyway."
+            print e.message
+        except TypeError:
+            print "Invalid value in PID file. Skipping."
+
     # Get the config to use for openvpn
     config = get_random_config(opts.configdir)
 
     # Start OpenVPN
-    start_vpn(opts.openvpn, config, opts.userfile)
+    print "Starting OpenVPN connection..."
+    vpn = start_vpn(opts.openvpn, config, opts.userfile, opts.cacert)
 
+    # Check if OpenVPN connected successfully.
+    if vpn:
+        # Write PID file with new PID.
+        pid_file = open(opts.pidfile, 'w')
+        pid_file.write(str(vpn['pid']))
+
+        if code == 0:
+            # Update the configuration file for transmission-daemon
+            update_transmission_config(opts.transmission_config, vpn['ip'])
+        else:
+            print "Error: could not stop transmission-daemon to reload configuration. Quitting."
+            sys.exit(1)
+
+        # Start up transmission-daemon
+        print "Restarting transmission-daemon"
+        code = start_transmission()
+
+        if code == 0:
+            print "Transmission restarted successfully."
+            sys.exit(0)
+        else:
+            print "Error: Failed to restart transmission-daemon."
+            sys.exit(1)
+
+    else:
+        print "OpenVPN connection failed. Quitting."
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
