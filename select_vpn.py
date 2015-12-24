@@ -182,6 +182,10 @@ def main():
         print "OpenVPN not found at {0} - make sure OpenVPN is installed on this machine.".format(opts.openvpn)
         sys.exit(1)
 
+    # Stop transmission daemon
+    print "Stopping transmission-daemon..."
+    code = stop_transmission()
+
     # Check for an existing PID file. If one exists read the PID from it, and kill the old VPN connection.
     if os.path.isfile(opts.pidfile):
         pid = open(opts.pidfile, 'r').read()
@@ -207,10 +211,6 @@ def main():
         # Write PID file with new PID.
         pid_file = open(opts.pidfile, 'w')
         pid_file.write(str(vpn['pid']))
-
-        # Stop transmission daemon
-        print "Stopping transmission-daemon..."
-        code = stop_transmission()
 
         if code == 0:
             # Update the configuration file for transmission-daemon
