@@ -131,9 +131,39 @@ def update_transmission_config(config_file, ip):
 
     with open(config_file, 'r+') as settings_json:
         data = json.load(settings_json)
+        print data
+        print str(ip)
         data['bind-address-ipv4'] = str(ip)
         settings_json.seek(0)
         json.dump(data, settings_json, indent=4)
+
+
+def stop_transmission():
+    """
+    Stops the transmission-daemon service. Needed for refreshing configs.
+
+    :return: Return code of the stop command.
+    """
+    stop_cmd = ['/bin/systemctl', 'stop', 'transmission-daemon.service']
+    stop_proc = subprocess.Popen(stop_cmd)
+
+    stop_proc.wait()
+
+    return stop_proc.returncode
+
+
+def start_transmission():
+    """
+    Starts the transmission-daemon service. Needed for refreshing configs.
+
+    :return: Return code of the art command.
+    """
+    stop_cmd = ['/bin/systemctl', 'start', 'transmission-daemon.service']
+    stop_proc = subprocess.Popen(stop_cmd)
+
+    stop_proc.wait()
+
+    return stop_proc.returncode
 
 
 def main():
@@ -180,7 +210,28 @@ def main():
         pid_file = open(opts.pidfile, 'w')
         pid_file.write(str(vpn['pid']))
 
-        update_transmission_config(opts.transmission_config, vpn['ip'])
+        # Stop transmission daemon
+        print "Stopping transmission-daemon..."
+        code = stop_transmission()
+
+        if code == 0:
+            # Update the configuration file for transmission-daemon
+            update_transmission_config(opts.transmission_config, vpn['ip'])
+        else:
+            print "Error: could not stop transmission-daemon to reload configuration. Quitting."
+            sys.exit(1)
+
+        # Start up transmission-daemon
+        print "Restarting transmission-daemon"
+        code = start_transmission()
+
+        if code == 0:
+            print "Transmission restarted successfully."
+            sys.exit(0)
+        else:
+            print "Error: Failed to restart transmission-daemon."
+            sys.exit(1)
+
     else:
         print "OpenVPN connection failed. Quitting."
         sys.exit(1)
