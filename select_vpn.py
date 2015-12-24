@@ -108,7 +108,6 @@ def start_vpn(openvpn, config, userfile, cacert):
 
     line = stdout.readline()
     while line:
-        print line
         if '/sbin/ip addr add dev' in line:
             vpn_ip = line.split(' ')[11]
             line = None
@@ -131,8 +130,6 @@ def update_transmission_config(config_file, ip):
 
     with open(config_file, 'r+') as settings_json:
         data = json.load(settings_json)
-        print data
-        print str(ip)
         data['bind-address-ipv4'] = str(ip)
         settings_json.seek(0)
         json.dump(data, settings_json, indent=4)
@@ -202,6 +199,7 @@ def main():
     config = get_random_config(opts.configdir)
 
     # Start OpenVPN
+    print "Starting OpenVPN connection..."
     vpn = start_vpn(opts.openvpn, config, opts.userfile, opts.cacert)
 
     # Check if OpenVPN connected successfully.
