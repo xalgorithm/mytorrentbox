@@ -6,15 +6,12 @@ Project stable: Want to add to it? Fork and PR!
 
 ## Project Overview
 
-How to build a headless bittorrent box using a [Beaglebone Black](https://www.adafruit.com/products/1876) using the transmission-daemon web interface.
+This project covers how to build a headless bittorrent box using a [Beaglebone Black](https://www.adafruit.com/products/1876) and [Transmission](http://www.transmissionbt.com/) bittorrnet client, specifically utilizing the the transmission-daemon component as a web interface. These instructions also include a guide for replacing the default web interface for Transmission with [kettu](https://github.com/endor/kettu). 
 
-Transmission will be configured to bind to two network interfaces. Since the Beaglebone only has a single Ethernet port, we will utilize an alias to support the second IP.
+A script bundled with this project handles opening up a VPN connection using the [OpenVPN](https://openvpn.net/) client. Transmission is configured to bind to the local IP address for its management web interface, and binds all bittorrent traffic to the VPN interface. All downloads will occurr over the VPN link. 
 
-One interface will serve the transmission web UI, and the other will connect to a VPN over which the actual bittorrent data will be transferred.
+The operating system used is Debian 8.2 from the image found [here](http://beagleboard.org/latest-images).
 
-For the operating system we used the Debian 8.2 image found [here](http://beagleboard.org/latest-images).
-
-Download the file, decompress it, and write it to a micro SD card
 ## OS Installation
 
 Download the OS image:
