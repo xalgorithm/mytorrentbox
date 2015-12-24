@@ -128,11 +128,13 @@ def update_transmission_config(config_file, ip):
     :param ip: IP Address of the local VPN link to add to the config file.
     :return:
     """
-    with open(config_file, 'rw') as settings_json:
-        data = json.loads(settings_json.read())
 
-        data['bind-address-ipv4'] = str(ip)
+    with open(config_file, 'r') as settings_json:
+        data = json.load(settings_json)
 
+    data['bind-address-ipv4'] = str(ip)
+
+    with open(config_file, 'w') as settings_json:
         json.dumps(data, settings_json, indent=4)
 
 
