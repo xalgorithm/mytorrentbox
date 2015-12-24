@@ -133,7 +133,7 @@ def update_transmission_config(config_file, ip):
         data = json.load(settings_json)
         data['bind-address-ipv4'] = str(ip)
         settings_json.seek(0)
-        json.dumps(data, settings_json, indent=4)
+        json.dump(data, settings_json, indent=4)
 
 
 def main():
