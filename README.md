@@ -1,20 +1,20 @@
 # Beaglebone Setup Notes
 
-## TODO:
+## TO DO:
 
 Project stable: Want to add to it? Fork and PR!
 
 ## Project Overview
 
-The goal of this project is to build a headless bittorrent box using a [Beaglebone Black](https://www.adafruit.com/products/1876) using the transmission-daemon web interface.
+How to build a headless bittorrent box using a [Beaglebone Black](https://www.adafruit.com/products/1876) using the transmission-daemon web interface.
 
-Transmission will be configured to bind to two network interaces. Since the Beaglebone only has a single Ethernet port we will utilize an alias to support the second IP.
+Transmission will be configured to bind to two network interfaces. Since the Beaglebone only has a single Ethernet port, we will utilize an alias to support the second IP.
 
-One interface will serve the transmission web UI, and the other will be used to connect to a VPN over which transfer the actual bittorrent data will be transferred.
+One interface will serve the transmission web UI, and the other will connect to a VPN over which the actual bittorrent data will be transferred.
 
 For the operating system we used the Debian 8.2 image found [here](http://beagleboard.org/latest-images).
 
-Download the file, decompress it, and write it to a microSD card
+Download the file, decompress it, and write it to a micro SD card
 ## OS Installation
 
 Download the OS image:
@@ -44,7 +44,7 @@ Once logged in edit the `/boot/uEnv.txt` file. Uncomment the following line:
 
 Save the file and reboot the board. The LEDS will flash as the operating system is written to eMMC. After about 30 minutes the lights will stop flashing. At this point you can power off the board, remove the SD card, and boot from the operating system on the eMMC.
 
-If you want you can repartiation and reformat your SD card and mount it as a separate drive.
+If you want you can repartition and reformat your SD card and mount it as a separate drive.
 
 For our case we mounted a 32G microSD card to `/var`.
 
@@ -74,7 +74,7 @@ Install the `transmission-daemon` package:
 
 We used the guide found [here](abyrne.me/setting-up-a-transmission-web-interface-on-a-headless-ubuntu-server/) to configure the service. The configuration file is found at `/etc/transmission-daemon/settings.json`. An example can be found in this repository.
 
-The following commands will disable the built-in Beaglebone web services so that Transmission can run on port 80. You should reboot or use `systemctl stop` to make sure the service aren't running:
+The following commands will disable the built-in Beaglebone web services so that Transmission can run on port 80. You should reboot or use `systemctl stop` to make sure the services aren't running:
 
     sudo systemctl disable cloud9.service
     sudo systemctl disable gateone.service
@@ -106,7 +106,7 @@ The Python script, __select_vpn.py__, allows you to utilise OpenVpn to connect t
 
 If you set a cron job to invoke the script, it will automatically disconnect and reconnect to a random server, defined by the .ovpn files.
 
-That directory is configurable, either by passing the python script parameters when you invoke it or setting it in the script itself
+That directory is configurable, either by passing the python script parameters when you invoke it, or setting it in the script itself.
 
 We've placed that script in our /root folder.
 The cronjob and the script has to run as root.
@@ -137,8 +137,8 @@ yourvpnuser    (user)
 
 ## Advanced Goodies
 
-Transmission togther with [Kettu](https://github.com/endor/kettu) allows you to set destination directories. If you have a NAS, Linux file server or cloud service you want to store files on, look below for some NFS wizardry
-I'm using a Centos based fileserver so this follows those steps. Your NAS/Fileserver may differ
+Transmission togther with [Kettu](https://github.com/endor/kettu) allows you to set destination directories. If you have a NAS, Linux file server or cloud service you want to store files on, look below for some NFS wizardry.
+I'm using a Centos based fileserver so this follows those steps. Your NAS/Fileserver may differ.
 
 First, for Centos/RHEL based servers get the necessary NFS tools
 
@@ -149,7 +149,7 @@ _I only needed to change the domain name, many more options are available_
 
 `vi /etc/idmapd.conf`
 
-I change the domain to fit my setup
+I change the domain to fit my setup:
 
 ```bash
 .....
@@ -161,11 +161,11 @@ Domain = xalg.im
 .....
 ```
 
-Enable your NFS drives and start the NFS service
+Enable your NFS drives and start the NFS service:
 
 `vi exports`
 
-Some initial examples to get you started
+Some initial examples to get you started:
 
 ```bash
 /home/pool2/iso 192.168.0.0/24(rw,sync,no_root_squash,no_all_squash)
@@ -176,13 +176,13 @@ Some initial examples to get you started
 -restart the service
 `systemctl start rpcbind nfs-server` or `systemctl restart rpcbind nfs-server`
  
-Now we need to configure the beaglebone side. It has to know about the NFS shares to write to them
+Now we need to configure the beaglebone side. It has to know about the NFS shares to write to them.
 
--Get the necessary libraries and services
+-Get the necessary libraries and services:
 
 `apt-get -y install nfs-client`
 
--Edit the client service
+-Edit the client service:
 `vi /etc/idmapd.conf`
 
 _in my case I only need to edit the domain name, as before there are many more options available_
@@ -197,11 +197,11 @@ Pipefs-Directory = /run/rpc_pipefs
  Domain = xalg.im
 ```
 
--Add the cooresponding NFS client mounts
+-Add the cooresponding NFS client mounts:
 
 `vi /etc/fstab`
 
-Add your drive mounts some examples to get started
+Add your drive mounts some examples to get started:
 
 ```bash
 debugfs  /sys/kernel/debug  debugfs  defaults  0  0
@@ -214,14 +214,14 @@ Now, reboot your beaglebone and check the mounts.
 `df -h`
 
 ### Setup Kettu
-Transmissions interface is barely acceptable. It is useable and certainly enables you to retrieve torrents, but it is sparse on features. It does not support all of the RPC api that transmission supports
-If, like me, you want to configure per torrent bandwidth limiting and control where your files are downloaded too, easily you can replace the default interface with __Kettu__
+Transmissions interface is barely acceptable. It is useable and certainly enables you to retrieve torrents, but it is sparse on features. It does not support all of the RPC api that transmission supports.
+If, like me, you want to configure per torrent bandwidth limiting and control where your files are downloaded too, you can easily replace the default interface with __Kettu__
 
-Halt transmisssion
+Halt transmisssion:
 
 `sudo systemctl stop transmission-daemon.service`
 
-Download the kettu repository.
+Download the kettu repository:
 
 `git clone https://github.com/endor/kettu.git`
 
@@ -235,7 +235,7 @@ Copy the __Kettu__ directory you just cloned, to the transmission directory as _
 
 `cp -R /root/kettu /usr/share/transmission/web`
 
-Start transmission again
+Start transmission again:
 
 `sudo systemctl start transmission-daemon.service`
 
@@ -244,7 +244,7 @@ Using this method is an easy way to keep track of your files and keep them somew
 
 If you replace the default web app with Kettu, the path is `/usr/share/transmission/web/config`
 
-The file, locations.js.example needs to be copied to locations.js
+The file locations.js.example needs to be copied to locations.js
 `cp locatons.js.example locations.js`
 
 Edit that file, telling transmission about your download directories
